@@ -7,7 +7,7 @@ def main():
     
     data = np.zeros((11, 11))
     # load the csv file from the current directory
-    with open("converge_data.10x10.csv", "r") as f:
+    with open("con_data_original_1.csv", "r") as f:
         reader = csv.reader(f)
         # discard the first row
         next(reader)
@@ -17,7 +17,7 @@ def main():
                 # convert the data to floats
                 row = [float(i) for i in row]
                 # add the data to the numpy array
-                data[int(row[0]*10), int(row[1]*10)] = row[2] * 100
+                data[int(row[1]*10), int(row[0]*10)] = abs(row[2])
             except StopIteration:
                 break
     
@@ -25,11 +25,11 @@ def main():
     vmin = -1 # Minimum value for the color scale
     vmax = 0.5  # Maximum value for the color scale
     # plot the heatmap
-    sns.heatmap(data, annot=True, fmt='f', cmap=custom_cmap, vmin=vmin, vmax=vmax)
+    sns.heatmap(data, annot=True, fmt='.3f', cmap=None)
     
     # add labels to the plot
-    plt.xlabel("Discount Factor")
-    plt.ylabel("Learning Rate")
+    plt.xlabel("Learning Rate")
+    plt.ylabel("Discount Factor")
     plt.title("Convergence Speed")
     
     plt.show()
