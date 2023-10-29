@@ -17,7 +17,7 @@ def calculate_convergence_speed(convergence_values):
     convergence_criteria = 0.01
     
     # calculate the difference between each consecative values
-    differences = np.diff(convergence_values)
+    # differences = np.diff(convergence_values)
     
     # find the first value where the values are less than the convergence criteria 
     converged_index = np.argmax(convergence_values < convergence_criteria)
@@ -27,8 +27,16 @@ def calculate_convergence_speed(convergence_values):
         return -1
     
     # fit a linear regression model to estimate the convergence speed
-    convergence_speed, _, _, _, _ = linregress(np.arange(len(differences[:converged_index])), differences[:converged_index])
+    convergence_speed, intercept, _, _, _ = linregress(np.arange(len(convergence_values[:converged_index])), convergence_values[:converged_index])
 
+    # plot the linear model 
+    if PLOT:
+        plt.plot(np.arange(len(convergence_values[:converged_index])), convergence_values[:converged_index], 'o')
+        plt.plot(np.arange(len(convergence_values[:converged_index])), intercept + convergence_speed * np.arange(len(convergence_values[:converged_index])))
+        plt.xlabel("Episode")
+        plt.ylabel("Convergence")
+        plt.show()
+    
     if converged_index > 0:
         # print(f"Converged after {converged_index} iterations")
         return convergence_speed
@@ -195,22 +203,39 @@ def generate_heat_map(state_size, action_size, env):
     # show the plot
     plt.show()
 
-def generate_convergence_data(state_size, action_size, env):
-    
-    discount_rate = 0.8
+def generate_convergence_data_fixed_discount(state_size, action_size, env, discount_rate, file_name):
     
     # write the convergence data to a csv file
-    with open('convergence_data.csv', mode='w', newline='') as file:
+    with open(file_name, mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(['Learning Rate', 'Convergence Speed', 'Standard Deviation'])
-        for learning_rate in range(11):
-            learning_rate /= 10
+        learning_rate = 0
+        while learning_rate <= 1:
             ret = get_mean_convergence_speed(state_size, action_size, env, learning_rate, discount_rate)
             if ret == -1:
+                writer.writerow([learning_rate, 0, 0])
                 continue
             mean_convergence_speed, std_convergence_speed = ret
             writer.writerow([learning_rate, mean_convergence_speed, std_convergence_speed])
             
+            learning_rate += 0.05
+            
+def generate_convergence_data_fixed_learning(state_size, action_size, env, learning_rate, file_name):
+    
+    # write the convergence data to a csv file
+    with open(file_name, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(['Learning Rate', 'Convergence Speed', 'Standard Deviation'])
+        discount_rate = 0
+        while discount_rate <= 1:
+            ret = get_mean_convergence_speed(state_size, action_size, env, learning_rate, discount_rate)
+            if ret == -1:
+                writer.writerow([learning_rate, 0, 0])
+                continue
+            mean_convergence_speed, std_convergence_speed = ret
+            writer.writerow([learning_rate, mean_convergence_speed, std_convergence_speed])
+            
+            discount_rate += 0.05
 
 def main():
     # create a Taxi environment
@@ -223,7 +248,7 @@ def main():
     # generate the convergence data
     # generate_convergence_data(state_size, action_size, env)
     generate_heat_map(state_size, action_size, env)
-            
+                
     env.close()
         
         
