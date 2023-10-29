@@ -24,3 +24,5 @@ build/
 *.sqlite3
 # Virtual environment
 venv/
+
+*.docx
