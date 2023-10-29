@@ -2,21 +2,13 @@ import numpy as np
 import gym
 import random
 import pygame
+import matplotlib.pyplot as plt
 
-
-
-def main():
-    # create a Taxi environment
-    env = gym.make('Taxi-v3', render_mode='rgb_array')
+def train(qtable, env, learning_rate, discount_rate):
+    # create a numpy array to hold the qtable convergence values in each steps
+    convergence_values = np.zeros((1000, 1))
     
-    # initialize the q table
-    state_size = env.observation_space.n
-    action_size = env.action_space.n
-    qtable = np.zeros((state_size, action_size))
-    
-    # hyperparameters
-    learning_rate = 0.9
-    discount_rate = 0.8
+    # hyper parameters
     epsilon = 1.0
     decay_rate = 0.005
     
@@ -24,6 +16,7 @@ def main():
     num_episodes = 1000
     max_steps = 99 # per spisode
     
+    previous_qtbale = np.copy(qtable)
     # training the agent
     for episode in range(num_episodes):
          
@@ -56,6 +49,37 @@ def main():
             
         # update epsilon
         epsilon *= np.exp(-decay_rate * episode)
+        
+        # Calculate the change between current and previous iterations
+        change = np.linalg.norm(qtable - previous_qtbale)
+        convergence_values[episode] = change
+        previous_qtbale = np.copy(qtable)
+    
+    # plot the convergence values
+    plt.plot(convergence_values)
+    plt.xlabel("Episode")
+    plt.ylabel("Convergence")
+    plt.show()
+
+def main():
+    # create a Taxi environment
+    env = gym.make('Taxi-v3', render_mode='rgb_array')
+    
+    # initialize the q table
+    state_size = env.observation_space.n
+    action_size = env.action_space.n
+    qtable = np.zeros((state_size, action_size))
+    
+    # hyperparameters
+    learning_rate = 0.9
+    discount_rate = 0.8
+    
+    num_episodes = 1000
+    max_steps = 99 # per episode
+    
+    # train the agent for a given learning rate and discount rate, plot the convergence graph of the qtable
+    train(qtable, env, learning_rate, discount_rate)
+    
         
     print(f"Training completed over {num_episodes} episodes")
     input("Press Enter to watch trained agent...")
