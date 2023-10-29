@@ -5,6 +5,7 @@ import random
 import pygame
 import matplotlib.pyplot as plt
 from scipy.stats import linregress
+import seaborn as sns
 import time
 
 PLOT = False
@@ -126,7 +127,7 @@ def play(qtable, env):
 
 def get_mean_convergence_speed(state_size, action_size, env, learning_rate, discount_rate):
     
-    train_rounds = 10
+    train_rounds = 20
     
     convergence_speed_data = np.zeros(train_rounds)
     
@@ -141,6 +142,7 @@ def get_mean_convergence_speed(state_size, action_size, env, learning_rate, disc
         # print the convergence speed
         convergence_speed = calculate_convergence_speed(convergence_values)
         if (convergence_speed == -1):
+            if DEBUG: print("Did not converge")
             return -1
         
         convergence_speed_data[i] = convergence_speed
@@ -159,6 +161,39 @@ def get_mean_convergence_speed(state_size, action_size, env, learning_rate, disc
     speed_std = np.std(convergence_speed_data)
     if DEBUG: print(f"Convergence speed: {speed_mean:.5f}")
     return speed_mean, speed_std   
+
+def generate_heat_map(state_size, action_size, env):
+    
+    file = open("convergence_data.csv", "w", newline='')
+    writer = csv.writer(file)
+    writer.writerow(['Learning Rate', 'Discount Factor', 'Convergence Speed'])
+    # numy array to hold the convergence speed data 10x10
+    convergence_speed_data = np.zeros((11, 11))
+    
+    for learning_rate in range(11):
+        for discount_factor in range(11):
+            if DEBUG: print(f"(x, y) = ({learning_rate}, {discount_factor})")
+            # calculate the convergence speed for each learning rate and discount factor
+            ret = get_mean_convergence_speed(state_size, action_size, env, learning_rate/10, discount_factor/10)
+            if ret == -1:
+                convergence_speed_data[learning_rate, discount_factor] = 0
+                writer.writerow([learning_rate/10, discount_factor/10, 0])
+            else:
+                convergence_speed_data[learning_rate, discount_factor] = ret[0] * 100 # increase the scale of the heatmap
+                writer.writerow([learning_rate/10, discount_factor/10, ret[0]])
+    
+    
+    file.close()
+    # plot the heatmap
+    sns.heatmap(convergence_speed_data, annot=True)
+    
+    # add labels to the plot
+    plt.xlabel("Discount Factor")
+    plt.ylabel("Learning Rate")
+    plt.title("Convergence Speed")
+    
+    # show the plot
+    plt.show()
 
 def generate_convergence_data(state_size, action_size, env):
     
@@ -186,7 +221,8 @@ def main():
     action_size = env.action_space.n
     
     # generate the convergence data
-    generate_convergence_data(state_size, action_size, env)
+    # generate_convergence_data(state_size, action_size, env)
+    generate_heat_map(state_size, action_size, env)
             
     env.close()
         
