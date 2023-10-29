@@ -1,15 +1,15 @@
+import csv
 import numpy as np
 import gym
 import random
 import pygame
 import matplotlib.pyplot as plt
 from scipy.stats import linregress
+import time
 
 PLOT = False
 PLAY = False
-
-def exponential_decay(x, a, b):
-    return a * np.exp(b * x)
+DEBUG = True
 
 def calculate_convergence_speed(convergence_values):
     
@@ -21,6 +21,10 @@ def calculate_convergence_speed(convergence_values):
     # find the first value where the values are less than the convergence criteria 
     converged_index = np.argmax(convergence_values < convergence_criteria)
     
+    if converged_index == 0:
+        # did not converge within the number of episodes
+        return -1
+    
     # fit a linear regression model to estimate the convergence speed
     convergence_speed, _, _, _, _ = linregress(np.arange(len(differences[:converged_index])), differences[:converged_index])
 
@@ -28,7 +32,6 @@ def calculate_convergence_speed(convergence_values):
         # print(f"Converged after {converged_index} iterations")
         return convergence_speed
     else:
-        # print("Did not converge within the specified criterion.")
         return -1
 
 def train(qtable, env, learning_rate, discount_rate):
@@ -89,9 +92,7 @@ def train(qtable, env, learning_rate, discount_rate):
         plt.ylabel("Convergence")
         plt.show()
     
-    # print the convergence speed
-    convergence_speed = calculate_convergence_speed(convergence_values)
-    print(f"Convergence speed: {convergence_speed:.5f}")
+    return convergence_values
 
 def play(qtable, env):
     
@@ -123,27 +124,70 @@ def play(qtable, env):
         if done:
             break
 
+def get_mean_convergence_speed(state_size, action_size, env, learning_rate, discount_rate):
+    
+    train_rounds = 10
+    
+    convergence_speed_data = np.zeros(train_rounds)
+    
+    # start time of the calculation
+    if DEBUG: start_time = time.time()
+    for  i in range(train_rounds):
+        
+        # initialize the q table
+        qtable = np.zeros((state_size, action_size))
+        # train the agent for a given learning rate and discount rate, plot the convergence graph of the qtable
+        convergence_values = train(qtable, env, learning_rate, discount_rate)
+        # print the convergence speed
+        convergence_speed = calculate_convergence_speed(convergence_values)
+        if (convergence_speed == -1):
+            return -1
+        
+        convergence_speed_data[i] = convergence_speed
+        
+        if PLAY:
+            # play the trained agent
+            play(qtable, env)
+    
+    # end time of the calculation
+    if DEBUG: end_time = time.time()
+    
+    if DEBUG:
+        print(f"elapsed time: {end_time - start_time:.4f}")
+       
+    speed_mean = np.mean(convergence_speed_data)
+    speed_std = np.std(convergence_speed_data)
+    if DEBUG: print(f"Convergence speed: {speed_mean:.5f}")
+    return speed_mean, speed_std   
+
+def generate_convergence_data(state_size, action_size, env):
+    
+    discount_rate = 0.8
+    
+    # write the convergence data to a csv file
+    with open('convergence_data.csv', mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(['Learning Rate', 'Convergence Speed', 'Standard Deviation'])
+        for learning_rate in range(11):
+            learning_rate /= 10
+            ret = get_mean_convergence_speed(state_size, action_size, env, learning_rate, discount_rate)
+            if ret == -1:
+                continue
+            mean_convergence_speed, std_convergence_speed = ret
+            writer.writerow([learning_rate, mean_convergence_speed, std_convergence_speed])
+            
+
 def main():
     # create a Taxi environment
     env = gym.make('Taxi-v3', render_mode='rgb_array')
     
-    # initialize the q table
+    # qtable dimensions
     state_size = env.observation_space.n
     action_size = env.action_space.n
-    qtable = np.zeros((state_size, action_size))
     
-    # hyperparameters
-    learning_rate = 0.7
-    discount_rate = 0.8
-    
-    # train the agent for a given learning rate and discount rate, plot the convergence graph of the qtable
-    train(qtable, env, learning_rate, discount_rate)
-    
-    if PLAY:
-        # play the trained agent
-        play(qtable, env)
-    
-        
+    # generate the convergence data
+    generate_convergence_data(state_size, action_size, env)
+            
     env.close()
         
         
