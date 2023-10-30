@@ -30,3 +30,5 @@ venv/
 # data files
 *.csv
 *.xlsx
+
+*.pdf
