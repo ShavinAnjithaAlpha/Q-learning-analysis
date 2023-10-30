@@ -14,13 +14,20 @@ DEBUG = True
 
 def calculate_convergence_speed(convergence_values):
     
-    convergence_criteria = 0.01
     
     # calculate the difference between each consecative values
     # differences = np.diff(convergence_values)
     
+    # smoothing the convergence data and removing the noise in the dataset
+    window_size = 20
+    convergence_values = np.convolve(convergence_values, np.ones(window_size) / window_size, mode='valid')
+
+    con_max = np.max(convergence_values)
+    convergence_threshold = con_max * 0.1
+    
+    
     # find the first value where the values are less than the convergence criteria 
-    converged_index = np.argmax(convergence_values < convergence_criteria)
+    converged_index = np.argmax(convergence_values < convergence_threshold)
     
     if converged_index == 0:
         # did not converge within the number of episodes
@@ -31,7 +38,7 @@ def calculate_convergence_speed(convergence_values):
 
     # plot the linear model 
     if PLOT:
-        plt.plot(np.arange(len(convergence_values[:converged_index])), convergence_values[:converged_index], 'o')
+        plt.plot(np.arange(len(convergence_values[:converged_index])), convergence_values[:converged_index])
         plt.plot(np.arange(len(convergence_values[:converged_index])), intercept + convergence_speed * np.arange(len(convergence_values[:converged_index])))
         plt.xlabel("Episode")
         plt.ylabel("Convergence")
@@ -248,7 +255,13 @@ def main():
     # generate the convergence data
     # generate_convergence_data(state_size, action_size, env)
     generate_heat_map(state_size, action_size, env)
-                
+    
+    # l = 0.1
+    # while l <= 1:
+    #     dat = train(np.zeros((state_size, action_size)), env, l, 0.0)
+    #     mean = calculate_convergence_speed(dat)
+    #     print(f"convergence {l}: {mean}")     
+    #     l += 0.1
     env.close()
         
         
