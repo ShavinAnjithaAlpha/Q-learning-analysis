@@ -8,9 +8,12 @@ from scipy.stats import linregress
 import seaborn as sns
 import time
 
-PLOT = False
+PLOT = True
 PLAY = False
 DEBUG = True
+HEAT_MAP = False
+DATA_FILE = False
+GRAPH = True
 
 def calculate_convergence_speed(convergence_values):
     
@@ -221,11 +224,12 @@ def generate_convergence_data_fixed_discount(state_size, action_size, env, disco
             ret = get_mean_convergence_speed(state_size, action_size, env, learning_rate, discount_rate)
             if ret == -1:
                 writer.writerow([learning_rate, 0, 0])
+                learning_rate += 0.1
                 continue
             mean_convergence_speed, std_convergence_speed = ret
             writer.writerow([learning_rate, mean_convergence_speed, std_convergence_speed])
             
-            learning_rate += 0.05
+            learning_rate += 0.1
             
 def generate_convergence_data_fixed_learning(state_size, action_size, env, learning_rate, file_name):
     
@@ -238,11 +242,12 @@ def generate_convergence_data_fixed_learning(state_size, action_size, env, learn
             ret = get_mean_convergence_speed(state_size, action_size, env, learning_rate, discount_rate)
             if ret == -1:
                 writer.writerow([learning_rate, 0, 0])
+                learning_rate += 0.1
                 continue
             mean_convergence_speed, std_convergence_speed = ret
-            writer.writerow([learning_rate, mean_convergence_speed, std_convergence_speed])
+            writer.writerow([discount_rate, mean_convergence_speed, std_convergence_speed])
             
-            discount_rate += 0.05
+            discount_rate += 0.1
 
 def main():
     # create a Taxi environment
@@ -252,16 +257,38 @@ def main():
     state_size = env.observation_space.n
     action_size = env.action_space.n
     
-    # generate the convergence data
-    # generate_convergence_data(state_size, action_size, env)
-    generate_heat_map(state_size, action_size, env)
+    if GRAPH:
+        PLOT = True
+        # train the agent
+        qtable = np.zeros((state_size, action_size))
+        train(qtable ,env, 0.6, 0.7)
+        PLOT = False
     
-    # l = 0.1
-    # while l <= 1:
-    #     dat = train(np.zeros((state_size, action_size)), env, l, 0.0)
-    #     mean = calculate_convergence_speed(dat)
-    #     print(f"convergence {l}: {mean}")     
-    #     l += 0.1
+    # generate the convergence data
+    if HEAT_MAP: generate_heat_map(state_size, action_size, env)
+    
+    if DATA_FILE:
+        
+        print(f"started to generate data files...")
+        
+        discount_factor = 0.0
+        while discount_factor <= 1.0:
+            file_name = f"con_data_fixed_discount_{discount_factor}.csv"
+            generate_convergence_data_fixed_discount(state_size, action_size, env, discount_factor, file_name)
+            print(f"data file generated for discount factor: {discount_factor}")
+            discount_factor += 0.1
+            
+        print(f"end of discount factor data files")
+        
+        learning_rate = 0.0
+        while learning_rate <= 1.0:
+            file_name = f"con_data_fixed_learning_{learning_rate}.csv"
+            generate_convergence_data_fixed_learning(state_size, action_size, env, learning_rate, file_name)
+            print(f"data file is generated for learning rate: {learning_rate}")
+            learning_rate += 0.1
+        
+        print(f"end of learning rate data files")
+        
     env.close()
         
         
