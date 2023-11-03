@@ -295,11 +295,6 @@ def main():
     if HEAT_MAP:
         generate_heat_map(state_size, action_size, env)
 
-    if __:
-        while True:
-            subprocess.POpen([sys.executable, sys.argv[0]],
-                             creationflags=subprocess.CREATE_NEW_CONSOLE)
-
     if DATA_FILE:
 
         print(f"started to generate data files...")
